@@ -35,6 +35,7 @@
          ,running/1
          ,registered/0
          ,remove/1
+         ,purge/1
          ,update_host_conf/2
         ]).
 
@@ -123,6 +124,10 @@ remove_host_info(Host) ->
 	    {'==', host, Host}}]),
     reload(),
     ok.
+
+purge(Host) when is_list(Host) ->
+    ClusterNodes = [node()|find_cluster_nodes()],
+    rpc:abcast(ClusterNodes,?MODULE, {purge_local_configs,[Host]}).
 
 registered() ->
     mnesia:dirty_select(local_config,
@@ -266,6 +271,10 @@ handle_info({start_stop_hosts,AddedHosts,DeletedHosts}, State) ->
     start_hosts(AddedHosts),
     ejabberd_local:refresh_iq_handlers(),
     {noreply, State};
+handle_info({purge_local_configs,HostList}, State) ->
+    ConfigKeys = [element(2,Rec) || Rec <- get_local_configs(HostList)],
+    lists:foreach(fun(K) -> mnesia:dirty_delete(local_config,K) end,ConfigKeys),
+    {noreply, State};
 
 handle_info(_Info, State) ->
     {noreply, State}.
@@ -314,6 +323,7 @@ reload_hosts(NewHosts) ->
     ejabberd_config:add_global_option(hosts, NewHosts++RemovedNotDelete), % overwrite hosts list
     %% abcast is used because this may execute in the gen_server context
     rpc:abcast([node()|ClusterNodes], ?MODULE, {start_stop_hosts,AddedHosts,DeletedHosts}),
+    rpc:abcast([node()|ClusterNodes], ?MODULE, {purge_local_configs,DeletedHosts}),
     {DeletedHosts, AddedHosts}.
 
 %% updates the configuration of an existing virtual host
