@@ -860,6 +860,9 @@ handle_info(terminate_if_waiting_before_retry, wait_before_retry, StateData) ->
 handle_info(terminate_if_waiting_before_retry, StateName, StateData) ->
     {next_state, StateName, StateData, get_timeout_interval(StateName)};
 
+handle_info(system_shutdown, StateName, StateData) ->
+    {stop, normal, StateData};
+
 handle_info(_, StateName, StateData) ->
     {next_state, StateName, StateData, get_timeout_interval(StateName)}.
 

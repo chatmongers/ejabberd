@@ -60,6 +60,7 @@
 	 get_user_info/3,
 	 get_user_ip/1,
 	 is_existing_resource/3,
+     stop_connections/1,
 	 migrate/1
 	]).
 
@@ -345,6 +346,13 @@ migrate(After) ->
 		      ok
 	      end
       end, Ss).
+
+stop_connections(Server) when is_list(Server) ->
+    stop_connections(list_to_binary(Server));
+stop_connections(Server) ->
+    C2SList = ejabberd_sm:get_vh_session_list(Server),
+    C2SPids = lists:map(fun get_session_pid/1, C2SList),
+    lists:foreach(fun(P) -> P ! system_shutdown end, C2SPids).
 
 %%====================================================================
 %% gen_server callbacks

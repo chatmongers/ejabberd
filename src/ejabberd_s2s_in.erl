@@ -624,6 +624,19 @@ handle_info({timeout, Timer, _}, _StateName,
 	    #state{timer = Timer} = StateData) ->
     {stop, normal, StateData};
 
+handle_info({system_shutdown, Server}, StateName, StateData) when true -> %when Server == StateData#state.server ->
+    Connections = dict:fetch_keys(StateData#state.connections),
+    case lists:any(fun({S1,S2}) when S1 == Server; S2 == Server -> true;
+                      (_) -> false end, Connections) of
+        true ->
+    %        ?ERROR_MSG("Stopping s2s: ~p ~p~n~p~n",[self(), Server, Connections]),
+            send_element(StateData, exmpp_stream:error('system-shutdown')),
+            {stop, normal, StateData};
+        false ->
+    %        ?ERROR_MSG("Not stopping s2s: ~p ~p~n~p~n",[self(), Server, Connections]),
+            {next_state, StateName, StateData}
+    end;
+
 handle_info(_, StateName, StateData) ->
     {next_state, StateName, StateData}.
 

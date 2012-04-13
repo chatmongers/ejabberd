@@ -112,6 +112,8 @@ update_host_conf(Host, Config) when is_list(Host), is_list(Config) ->
 remove(Host) when is_list(Host) ->
     HostB = list_to_binary(Host),
     ejabberd_hooks:run(remove_host, HostB, [HostB]),
+    ejabberd_sm:stop_connections(Host),
+    ejabberd_s2s:stop_connections(Host),
     remove_host_info(Host).
 
 remove_host_info(Host) ->

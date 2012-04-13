@@ -37,6 +37,7 @@
 	 get_connections_pids/1,
 	 try_register/1,
 	 remove_connection/3,
+	 stop_connections/1,
 	 find_connection/2,
 	 dirty_get_connections/0,
 	 allow_host/2,
@@ -262,6 +263,19 @@ migrate(After) ->
 		      ok
 	      end
       end, Ss).
+
+stop_connections(Server) when is_binary(Server) ->
+    stop_connections(binary_to_list(Server));
+stop_connections(Server) ->
+    ServerConn =
+    lists:filter(fun({S,_}) when Server == S -> true;
+                    ({_,S}) when Server == S -> true;
+                    (_) -> false end, dirty_get_connections()),
+    Pids =
+    lists:flatmap(fun get_connections_pids/1, ServerConn),
+    lists:foreach(fun(P) -> P ! system_shutdown end, Pids),
+    S2SInPids = [element(2,C) || C <- supervisor:which_children(ejabberd_s2s_in_sup)],
+    lists:foreach(fun(P) -> P ! {system_shutdown, Server} end, S2SInPids).
 
 %%====================================================================
 %% gen_server callbacks
