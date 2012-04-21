@@ -742,6 +742,8 @@ host_term_to_record({host, _}, _Host, Acc) -> Acc;
 host_term_to_record({hosts, _}, _Host, Acc) -> Acc;
 host_term_to_record({{Host, host}, []}, Host, Acc) ->
     [#local_config{key={Host, host}, value=[]} | Acc];
+host_term_to_record({{s2s_host,_Host}=Opt, Val}, Host, Acc) ->
+    [#local_config{key={Opt, Host}, value=Val} | Acc];
 host_term_to_record({Opt, Val}, Host, Acc) when is_atom(Opt) ->
     [#local_config{key={Opt, Host}, value=Val} | Acc].
 
