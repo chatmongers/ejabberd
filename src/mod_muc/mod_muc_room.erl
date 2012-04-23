@@ -51,6 +51,7 @@
 	 code_change/4]).
 
 -include_lib("exmpp/include/exmpp.hrl").
+-include_lib("exmpp/include/exmpp_jid.hrl").
 
 -include("ejabberd.hrl").
 -include("mod_muc_room.hrl").
@@ -913,7 +914,13 @@ is_user_allowed_message_nonparticipant(JID, StateData) ->
     case get_service_affiliation(JID, StateData) of
 	owner ->
 	    true;
-	_ -> false
+	_ ->
+        Domain = binary_to_list(JID#jid.domain),
+        case {acl:match_rule(Domain, muc_admin, JID),
+              acl:match_rule(Domain, muc_allow_force_send, JID)} of
+        {allow, allow} -> true;
+        _ -> false
+        end
     end.
 
 %% @doc Get information of this participant, or default values.
